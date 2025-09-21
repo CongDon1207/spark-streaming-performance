@@ -1,0 +1,8 @@
+-- init.sql
+-- Tạo bảng đích events_sink trong PostgreSQL
+--
+-- Bảng này sẽ lưu trữ kết quả xử lý từ Spark Streaming
+-- Cấu trúc bảng phù hợp với dữ liệu từ Kafka topic 'events'
+--
+-- Các cột có thể bao gồm:
+-- - id, timestamp, event_type, user_id, data, processed_time, etc.
