@@ -1,9 +1,0 @@
-# requirements.txt
-# Các package Python cần thiết cho local environment
-# 
-# Bao gồm:
-# - pyspark
-# - kafka-python  
-# - psycopg2-binary (PostgreSQL driver)
-# - pandas (nếu cần)
-# - numpy (nếu cần)

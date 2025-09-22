@@ -1,10 +1,53 @@
-# phase2_slow_map.py
-# Phase 2: Slow processing demo (Slide 21-23)
-# Chèn sleep → Processing Time > BI → Delay↑
-#
-# Mục đích:
-# - Chèn thêm sleep() hoặc tính toán phức tạp
-# - Làm cho Processing Time > Batch Interval
-# - Quan sát Delay tăng dần theo thời gian
-# - Minh họa bottleneck trong xử lý
-# - Hệ thống bắt đầu lag
+﻿from pyspark import SparkConf, SparkContext
+from pyspark.streaming import StreamingContext
+import time
+
+CONFIG = {
+    "APP_NAME": "Phase2-SlowMap",
+    "UI_PORT": "4040",
+    "BATCH_INTERVAL": 2,
+    "SOCKET_HOST": "localhost",
+    "SOCKET_PORT": 9999,
+    "REPARTITION": 4,
+    "REDUCE_PARTITIONS": 4,
+    "DEFAULT_PARALLELISM": 4,
+    "SLOW_MAP_MS": 20,
+    "PREVIEW_BATCHES": 5,
+}
+
+
+def _sleep_and_forward(value: str, delay_seconds: float) -> str:
+    time.sleep(delay_seconds)
+    return value
+
+
+def build_streaming_context(cfg: dict) -> StreamingContext:
+    conf = (
+        SparkConf()
+        .setAppName(cfg["APP_NAME"])
+        .set("spark.ui.port", cfg["UI_PORT"])
+        .set("spark.default.parallelism", str(cfg["DEFAULT_PARALLELISM"]))
+    )
+    sc = SparkContext(conf=conf)
+    ssc = StreamingContext(sc, cfg["BATCH_INTERVAL"])
+
+    stream = ssc.socketTextStream(cfg["SOCKET_HOST"], cfg["SOCKET_PORT"])
+    if cfg["REPARTITION"]:
+        stream = stream.repartition(cfg["REPARTITION"])
+
+    words = stream.flatMap(lambda line: line.split())
+    delay_seconds = cfg["SLOW_MAP_MS"] / 1000.0
+    words = words.map(lambda w: _sleep_and_forward(w, delay_seconds))
+
+    counts = (
+        words.map(lambda w: (w, 1))
+        .reduceByKey(lambda a, b: a + b, numPartitions=cfg["REDUCE_PARTITIONS"])
+    )
+    counts.pprint(cfg["PREVIEW_BATCHES"])
+    return ssc
+
+
+if __name__ == "__main__":
+    streaming_context = build_streaming_context(CONFIG)
+    streaming_context.start()
+    streaming_context.awaitTermination()

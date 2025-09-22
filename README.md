@@ -1,77 +1,82 @@
 # Spark Streaming Performance Demo
 
-## Tổng quan dự án
-Demo về hiệu suất Spark Streaming với các kỹ thuật tối ưu hóa và xử lý bottleneck.
+## 📋 Tổng quan dự án
+Demo về hiệu suất Spark Streaming với các kỹ thuật tối ưu hóa và xử lý bottleneck. Bao gồm 3 phase demo minh họa từ baseline → bottleneck → optimization, cùng với các bài tập thực hành.
 
-## Cấu trúc thư mục
+## 📁 Cấu trúc thư mục
 ```
 nhom10/
-├─ docker-compose.yml           # Container orchestration
-├─ app/                         # Ứng dụng chính
-│  ├─ streaming_demo.py         # Kafka → Spark → Postgres
-│  ├─ batch_demo.py             # Demo shuffle/partitions
-│  └─ requirements.txt          # Python dependencies
-├─ postgres/
-│  └─ init.sql                  # Schema cho events_sink
-├─ kafka/
-│  └─ create-topics.sh          # Tạo topic 'events'
-├─ spark/
-│  └─ spark-defaults.conf       # Cấu hình Spark
-├─ demo/                        # Demo performance (Slide 18-26)
-│  ├─ phase1_baseline.py        # Baseline: Processing < BI
-│  ├─ phase2_slow_map.py        # Bottleneck: Processing > BI  
-│  ├─ phase3_parallelism.py     # Fix: Tăng parallelism
-│  ├─ socket_source.sh          # Simple data source
-│  └─ run_examples.md           # Hướng dẫn chạy demo
-└─ exercises/                   # Bài tập (Slide 27-31)
-   ├─ level1_fill_gaps/         # Điền chỗ trống cơ bản
-   │  ├─ exercise_fill_gaps.py
-   │  └─ SOLUTION.md
-   └─ level2_skew_salt/         # Xử lý data skew
-      ├─ exercise_skew_fill_gaps.py
-      └─ SOLUTION.md
+├── 📄 README.md                    # Tài liệu hướng dẫn
+├── 📄 AGENTS.md                    # Quy tắc cho AI agents
+├── 📄 docker-compose.yml           # Container orchestration
+├── 📄 Dockerfile                   # Custom Spark image
+├── 📄 .gitignore                   # Git ignore rules
+│
+├── 📁 demo/                        # Demo Performance (Slides 18-26)
+│   ├── 🐍 phase1_baseline.py       # Phase 1: Baseline (BI=2s, cores=4)
+│   ├── 🐍 phase2_slow_map.py       # Phase 2: Bottleneck (thêm sleep)
+│   ├── 🐍 phase3_parallelism.py    # Phase 3: Tối ưu (cores=8)
+│   ├── 🐍 socket_source.py         # Socket server tạo dữ liệu test
+│   
+│
+├── 📁 spark/                       # Cấu hình Spark
+│   └── 📄 spark-defaults.conf      # Spark configuration settings
+│
+├── 📁 exercises/                   # Bài tập thực hành (Slides 27-31)
+│  
+│
+├── 📁 docs/                        # Tài liệu thuyết trình
+│   └── 📄 nội dung thuyết trình.docx
+│
+└── 📁 scripts/ (tùy chọn)          # Scripts tiện ích
+    ├── 🔧 run_socket_source.sh     # Chạy socket source
+    └── 🔧 run_phase3_demo.sh       # Chạy phase 3 demo
 ```
 
-## Hướng dẫn sử dụng
+## 🚀 Hướng dẫn sử dụng
 
-### 1. Khởi động environment
+### 1. 🏗️ Khởi động môi trường
 ```bash
-docker-compose up -d
-./kafka/create-topics.sh
+# Build và khởi động containers
+docker-compose up -d --build
+
+# Kiểm tra containers đang chạy
+docker-compose ps
 ```
 
-### 2. Chạy demo performance
+### 2. 🎯 Chạy demo performance
+
+> **⚠️ Lưu ý:** Cần chạy socket source trước khi chạy Spark jobs
+
+#### **Terminal 1: Socket Source (Data Generator)**
 ```bash
-# Phase 1: Baseline
-spark-submit demo/phase1_baseline.py
+# PowerShell hoặc CMD
+docker exec -it spark-master python /opt/app/demo/socket_source.py
+```
+*Giữ terminal này mở - nó sẽ sinh dữ liệu liên tục*
 
-# Phase 2: Bottleneck  
-spark-submit demo/phase2_slow_map.py
+#### **Terminal 2: Spark Streaming Jobs**
+```bash
+# Phase 1: Baseline (Processing Time < Batch Interval)
+docker exec -it spark-master spark-submit --master local[4] /opt/app/demo/phase1_baseline.py
 
-# Phase 3: Optimized
-spark-submit demo/phase3_parallelism.py
+# Phase 2: Bottleneck (Processing Time > Batch Interval) 
+docker exec -it spark-master spark-submit --master local[4] /opt/app/demo/phase2_slow_map.py
+
+# Phase 3: Optimized (Tăng parallelism để giảm Processing Time)
+docker exec -it spark-master spark-submit --master local[8] /opt/app/demo/phase3_parallelism.py
 ```
 
-### 3. Quan sát Spark UI
-- URL: http://localhost:4040
-- Chú ý: Streaming tab, Jobs, Stages
-- Metrics: Processing Time, Scheduling Delay, Input Rate
+### 3. 📊 Truy cập Spark UI
 
-### 4. Bài tập
-- Level 1: Điền chỗ trống trong `exercises/level1_fill_gaps/`
-- Level 2: Xử lý data skew trong `exercises/level2_skew_salt/`
+| Service | URL | Mô tả |
+|---------|-----|-------|
+| **Spark Master UI** | http://localhost:8081 | Quản lý cluster, workers |
+| **Spark Driver UI** | http://localhost:4040 | Monitoring jobs (khi job đang chạy) |
 
-## Checklist quan sát UI
-- [ ] Input Rate vs Processing Rate
-- [ ] Batch Processing Time trend
-- [ ] Scheduling Delay pattern  
-- [ ] Task duration distribution
-- [ ] Memory usage và GC behavior
-- [ ] Shuffle read/write metrics
 
-## Mục tiêu học tập
-1. Hiểu bottleneck trong streaming applications
-2. Áp dụng kỹ thuật tối ưu parallelism
-3. Xử lý data skew với salting/pre-aggregation
-4. Sử dụng Spark UI để performance tuning
-5. Best practices cho production streaming jobs
+### 4. 📝 Bài tập thực hành
+
+
+
+
