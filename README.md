@@ -77,6 +77,15 @@ docker exec -it spark-master spark-submit --master local[8] /opt/app/demo/phase3
 
 ### 4. 📝 Bài tập thực hành
 
+**Level 1 – Exercise Fill Gaps**
+- Chạy nguồn dữ liệu: `docker exec -it spark-master python /opt/app/demo/socket_source.py` (giữ terminal mở).
+- Submit bài tập: `docker exec -it spark-master spark-submit --master local[4] /opt/app/exercises/exercise_fill_gaps.py`.
+- Mở Spark UI: `http://localhost:4040/streaming` để quan sát `Processing Time > Batch Interval` và `Scheduling Delay` tăng.
+- Yêu cầu học viên chỉnh lại cùng file: đặt `DEFAULT_PARALLELISM`, `REPARTITION`, `REDUCE_PARTITIONS` thành `8` và chạy lại với `--master local[8]` để thấy `Scheduling Delay` trở về 0.
+- Thu thập screenshot/ghi chú so sánh trước–sau cho phần thuyết trình.
 
-
-
+**Level 2 – Exercise Skew Fill Gaps (tuỳ chọn)**
+- Giữ socket source đang chạy hoặc khởi động lại.
+- Lần 1 (chưa tối ưu): chạy `docker exec -it spark-master spark-submit --master local[8] /opt/app/exercises/exercise_skew_fill_gaps.py` với cấu hình mặc định (`ENABLE_SALTING = False`) để thấy `Processing Time` tăng nhẹ và một task reduce chạy lâu do key `word0` skew.
+- Yêu cầu học viên chỉnh cùng file: đặt `ENABLE_SALTING = True` (và có thể điều chỉnh `SALT_BUCKETS`) rồi chạy lại lệnh trên để xác nhận `Scheduling Delay` gần như 0 và các task phân phối đồng đều.
+- Khuyến khích chụp Spark UI (tab `Streaming`, `Executors`) trước/sau và thử so sánh các giá trị `Processing Time`, `Tasks Time`.
