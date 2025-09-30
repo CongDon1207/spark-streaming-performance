@@ -75,10 +75,7 @@ docker exec -it spark-master spark-submit --master local[8] /opt/app/demo/phase3
 | **Spark Driver UI** | http://localhost:4040 | Monitoring jobs (khi job đang chạy) |
 
 
-### 4. 📝 Bài tập thực hành
-
-
-### **Level 1 – Exercise Fill Gaps (tạo delay rồi sửa)**
+### 4. 📝 Bài tập thực hành – Exercise Fill Gaps
 
 **Hoàn thiện code** `exercises/exercise_fill_gaps.py` **và** `exercises/exercise_fix_delay.py` để giải quyết yêu cầu bài tập.
 
@@ -98,9 +95,6 @@ docker exec -it spark-master python /opt/app/demo/socket_source.py
 # [socket_source] listening on 0.0.0.0:9999
 ```
 
-* Mở **Spark UI** (driver UI hiển thị khi job đang chạy):
-
-  * [http://localhost:4040](http://localhost:4040)  (đổi cổng bằng `--conf spark.ui.port=4041` nếu bận)
 
 ---
 
@@ -118,6 +112,10 @@ docker exec -it spark-master \
   --conf spark.ui.port=4040 \
   /opt/app/exercises/exercise_fill_gaps.py
 ```
+
+* Mở **Spark UI** (driver UI hiển thị khi job đang chạy):
+
+  * [http://localhost:4040](http://localhost:4040)
 
 **Quan sát trên UI › tab *Streaming***
 
@@ -156,5 +154,3 @@ docker exec -it spark-master \
 
 ![After – Fixed Delay](image/streaming_after_fix.png)
 > **Hình 2 – “After”:** PT < BI, Scheduling Delay ≈ 0.
-
----
