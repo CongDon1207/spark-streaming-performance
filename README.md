@@ -77,15 +77,84 @@ docker exec -it spark-master spark-submit --master local[8] /opt/app/demo/phase3
 
 ### 4. 📝 Bài tập thực hành
 
-**Level 1 – Exercise Fill Gaps**
-- Chạy nguồn dữ liệu: `docker exec -it spark-master python /opt/app/demo/socket_source.py` (giữ terminal mở).
-- Submit bài tập: `docker exec -it spark-master spark-submit --master local[4] /opt/app/exercises/exercise_fill_gaps.py`.
-- Mở Spark UI: `http://localhost:4040/streaming` để quan sát `Processing Time > Batch Interval` và `Scheduling Delay` tăng.
-- Yêu cầu học viên chỉnh lại cùng file: đặt `DEFAULT_PARALLELISM`, `REPARTITION`, `REDUCE_PARTITIONS` thành `8` và chạy lại với `--master local[8]` để thấy `Scheduling Delay` trở về 0.
-- Thu thập screenshot/ghi chú so sánh trước–sau cho phần thuyết trình.
 
-**Level 2 – Exercise Skew Fill Gaps (tuỳ chọn)**
-- Giữ socket source đang chạy hoặc khởi động lại.
-- Lần 1 (chưa tối ưu): chạy `docker exec -it spark-master spark-submit --master local[8] /opt/app/exercises/exercise_skew_fill_gaps.py` với cấu hình mặc định (`ENABLE_SALTING = False`) để thấy `Processing Time` tăng nhẹ và một task reduce chạy lâu do key `word0` skew.
-- Yêu cầu học viên chỉnh cùng file: đặt `ENABLE_SALTING = True` (và có thể điều chỉnh `SALT_BUCKETS`) rồi chạy lại lệnh trên để xác nhận `Scheduling Delay` gần như 0 và các task phân phối đồng đều.
-- Khuyến khích chụp Spark UI (tab `Streaming`, `Executors`) trước/sau và thử so sánh các giá trị `Processing Time`, `Tasks Time`.
+### **Level 1 – Exercise Fill Gaps (tạo delay rồi sửa)**
+
+**Hoàn thiện code** `exercises/exercise_fill_gaps.py` **và** `exercises/exercise_fix_delay.py` để giải quyết yêu cầu bài tập.
+
+
+#### Mục tiêu
+
+* Hiểu quan hệ **Batch Interval (BI)** – **Processing Time (PT)** – **Scheduling Delay**.
+* **Lượt chạy 1 (tạo delay):** cố tình làm chậm → PT > BI → Scheduling Delay tăng.
+* **Lượt chạy 2 (fix delay):** tăng parallelism/giảm tải → PT < BI → Scheduling Delay ≈ 0.
+
+#### Chuẩn bị
+
+* Đảm bảo socket source đang chạy:
+
+```bash
+docker exec -it spark-master python /opt/app/demo/socket_source.py
+# [socket_source] listening on 0.0.0.0:9999
+```
+
+* Mở **Spark UI** (driver UI hiển thị khi job đang chạy):
+
+  * [http://localhost:4040](http://localhost:4040)  (đổi cổng bằng `--conf spark.ui.port=4041` nếu bận)
+
+---
+
+#### **Bước 1 — Chạy bài tạo delay (Exercise-FillGaps)**
+
+* File: `/opt/app/exercises/exercise_fill_gaps.py`
+* Cấu hình chính: **BI = 2s**, **sleep = 15ms/record**, **repartition(4)**, **reduceByKey(..., 4)**
+
+Chạy:
+
+```bash
+docker exec -it spark-master \
+  spark-submit \
+  --master local[4] \
+  --conf spark.ui.port=4040 \
+  /opt/app/exercises/exercise_fill_gaps.py
+```
+
+**Quan sát trên UI › tab *Streaming***
+
+* **Input Rate** ~ 140–150 rec/s ⇒ ~280–300 rec/batch với BI=2s.
+* **Processing Time (PT)** ~ 1–2.5s (tuỳ máy). Nếu **PT > 2s** nhiều batch liên tiếp:
+
+  * **Scheduling Delay** sẽ **tăng dần** (đường chéo đi lên).
+  * **Queued Batches > 0** (có backlog).
+* **Total Delay ≈ PT + Scheduling Delay**.
+
+![Before – Streaming Delay](image/streaming_before_delay.png)
+> **Hình 1 – “Before”:** PT ≳ BI, Scheduling Delay tăng.
+
+---
+
+#### **Bước 2 — Chạy bài fix delay (Exercise-FixDelay)**
+
+* File: `/opt/app/exercises/exercise_fix_delay.py`
+* Cấu hình gợi ý: **BI = 2s**, **sleep = 5ms/record**, **repartition(8)**, **reduceByKey(..., 8)**
+
+Chạy:
+
+```bash
+docker exec -it spark-master \
+  spark-submit \
+  --master local[8] \
+  --conf spark.ui.port=4040 \
+  /opt/app/exercises/exercise_fix_delay.py
+```
+
+**Kỳ vọng trên UI**
+
+* **Processing Time < 2s** rõ rệt (thường ~0.5–1.2s tuỳ máy).
+* **Scheduling Delay = 0 ms** (đường phẳng), **Queued Batches = 0**.
+* **Total Delay ≈ Processing Time**.
+
+![After – Fixed Delay](image/streaming_after_fix.png)
+> **Hình 2 – “After”:** PT < BI, Scheduling Delay ≈ 0.
+
+---

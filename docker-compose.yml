@@ -12,6 +12,10 @@ services:
       - "7077:7077"   # Spark master
       - "8081:8080"   # Spark master UI
       - "4040:4040"   # Driver UI (khi chạy job từ master)
+    volumes:
+      - ./demo:/opt/app/demo
+      - ./exercises:/opt/app/exercises
+      - ./spark/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf
     networks: [sparknet]
 
   spark-worker-1:
@@ -22,6 +26,10 @@ services:
       - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_WORKER_CORES=4
       - SPARK_WORKER_MEMORY=4G
+    volumes:
+      - ./demo:/opt/app/demo
+      - ./exercises:/opt/app/exercises
+      - ./spark/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf
     depends_on: [spark-master]
     networks: [sparknet]
 
