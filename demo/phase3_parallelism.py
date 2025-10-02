@@ -9,17 +9,9 @@ CONFIG = {
     "BATCH_INTERVAL": 2,
     "SOCKET_HOST": "localhost",
     "SOCKET_PORT": 9999,
-    "REPARTITION": 8,
-    "REDUCE_PARTITIONS": 8,
-    "DEFAULT_PARALLELISM": 8,
-    "SLOW_MAP_MS": 20,
-    "PREVIEW_BATCHES": 5,
+    "PARALLELISM": 8,
+    "DELAY_SECONDS": 0.004,  # 4ms
 }
-
-
-def _sleep_and_forward(value: str, delay_seconds: float) -> str:
-    time.sleep(delay_seconds)
-    return value
 
 
 def build_streaming_context(cfg: dict) -> StreamingContext:
@@ -27,7 +19,7 @@ def build_streaming_context(cfg: dict) -> StreamingContext:
         SparkConf()
         .setAppName(cfg["APP_NAME"])
         .set("spark.ui.port", cfg["UI_PORT"])
-        .set("spark.default.parallelism", str(cfg["DEFAULT_PARALLELISM"]))
+        .set("spark.default.parallelism", str(cfg["PARALLELISM"]))
     )
     master = cfg.get("MASTER")
     if master:
@@ -37,18 +29,17 @@ def build_streaming_context(cfg: dict) -> StreamingContext:
     ssc = StreamingContext(sc, cfg["BATCH_INTERVAL"])
 
     stream = ssc.socketTextStream(cfg["SOCKET_HOST"], cfg["SOCKET_PORT"])
-    if cfg["REPARTITION"]:
-        stream = stream.repartition(cfg["REPARTITION"])
+    if cfg["PARALLELISM"]:
+        stream = stream.repartition(cfg["PARALLELISM"])
 
     words = stream.flatMap(lambda line: line.split())
-    delay_seconds = cfg["SLOW_MAP_MS"] / 1000.0
-    words = words.map(lambda w: _sleep_and_forward(w, delay_seconds))
+    words = words.map(lambda w: (time.sleep(cfg["DELAY_SECONDS"]), w)[1])
 
     counts = (
         words.map(lambda w: (w, 1))
-        .reduceByKey(lambda a, b: a + b, numPartitions=cfg["REDUCE_PARTITIONS"])
+        .reduceByKey(lambda a, b: a + b, numPartitions=cfg["PARALLELISM"])
     )
-    counts.pprint(cfg["PREVIEW_BATCHES"])
+    counts.pprint(5)
     return ssc
 
 

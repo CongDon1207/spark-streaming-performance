@@ -4,14 +4,11 @@ from pyspark.streaming import StreamingContext
 CONFIG = {
     "APP_NAME": "Phase1-Baseline",
     "UI_PORT": "4040",
-    "MASTER": None,
+    "MASTER": "local[4]",
     "BATCH_INTERVAL": 2,
     "SOCKET_HOST": "localhost",
     "SOCKET_PORT": 9999,
-    "REPARTITION": 4,
-    "REDUCE_PARTITIONS": 4,
-    "DEFAULT_PARALLELISM": 4,
-    "PREVIEW_BATCHES": 5,
+    "PARALLELISM": 4,
 }
 
 
@@ -20,7 +17,7 @@ def build_streaming_context(cfg: dict) -> StreamingContext:
         SparkConf()
         .setAppName(cfg["APP_NAME"])
         .set("spark.ui.port", cfg["UI_PORT"])
-        .set("spark.default.parallelism", str(cfg["DEFAULT_PARALLELISM"]))
+        .set("spark.default.parallelism", str(cfg["PARALLELISM"]))
     )
     master = cfg.get("MASTER")
     if master:
@@ -30,15 +27,15 @@ def build_streaming_context(cfg: dict) -> StreamingContext:
     ssc = StreamingContext(sc, cfg["BATCH_INTERVAL"])
 
     stream = ssc.socketTextStream(cfg["SOCKET_HOST"], cfg["SOCKET_PORT"])
-    if cfg["REPARTITION"]:
-        stream = stream.repartition(cfg["REPARTITION"])
+    if cfg["PARALLELISM"]:
+        stream = stream.repartition(cfg["PARALLELISM"])
 
     words = stream.flatMap(lambda line: line.split())
     counts = (
         words.map(lambda w: (w, 1))
-        .reduceByKey(lambda a, b: a + b, numPartitions=cfg["REDUCE_PARTITIONS"])
+        .reduceByKey(lambda a, b: a + b, numPartitions=cfg["PARALLELISM"])
     )
-    counts.pprint(cfg["PREVIEW_BATCHES"])
+    counts.pprint(5)
     return ssc
 
 

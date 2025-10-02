@@ -9,10 +9,9 @@ CONFIG = {
     "PORT": 9999,
     "WORDS_PER_LINE": 3,
     "WORD_VARIANTS": 50,
-    "LINES_PER_SECOND": 150,  # đặt cao để pha 2 tạo backlog
 }
 
-_SLEEP_BETWEEN_LINES = 1.0 / CONFIG["LINES_PER_SECOND"]
+_SLEEP_BETWEEN_LINES = 1.0 / 140
 
 
 def gen_line() -> str:
