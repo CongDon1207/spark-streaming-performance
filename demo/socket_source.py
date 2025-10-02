@@ -22,7 +22,7 @@ def gen_line() -> str:
     words = []
     for _ in range(words_per_line):
         number = random.randint(0, word_variants - 1)
-        words.append(f"word{number}")
+        words.append(f"word{number}")  # word0, word1, ..., word49
 
     line = " ".join(words)
     return line + "\n"
