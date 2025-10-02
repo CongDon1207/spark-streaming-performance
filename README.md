@@ -79,6 +79,13 @@ docker exec -it spark-master spark-submit /opt/app/demo/phase3_parallelism.py
 
 #### Chuẩn bị
 
+* Nếu chưa khởi động môi trường, chạy:
+
+```bash
+docker compose build
+docker compose up -d
+```
+
 * Đảm bảo socket source đang chạy:
 
 ```bash

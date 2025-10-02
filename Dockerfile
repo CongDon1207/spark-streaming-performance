@@ -1,5 +1,5 @@
 # Dockerfile cho Spark với demo files
-FROM bitnami/spark:3.5
+FROM hungfnguyen28/spark-perf-demo:1.0
 
 # Set working directory
 WORKDIR /opt/bitnami/spark
